@@ -4,6 +4,8 @@ import (
 	"fmt"
 	entity "suggestApp/enity"
 	"suggestApp/pkg/phoneNumber"
+
+	"golang.org/x/crypto/bcrypt"
 )
 
 type repository interface {
@@ -18,6 +20,7 @@ type Service struct {
 type RegisterRequest struct {
 	Name        string `json:"name"`
 	PhoneNumber string `json:"phone_number"`
+	Password    string `json:"password"`
 }
 
 type RegisterResponse struct {
@@ -49,9 +52,14 @@ func (s Service) Register(req RegisterRequest) (RegisterResponse, error) {
 		return RegisterResponse{}, fmt.Errorf("name is too short")
 	}
 
+	if len(req.Password) < 8 {
+		return RegisterResponse{}, fmt.Errorf("password is too short")
+	}
+
 	user := entity.User{
 		Name:        req.Name,
 		PhoneNumber: req.PhoneNumber,
+		Password:    GetHash(req.Password),
 	}
 
 	createdUser, Err := s.repo.Register(user)
@@ -61,3 +69,22 @@ func (s Service) Register(req RegisterRequest) (RegisterResponse, error) {
 
 	return RegisterResponse{createdUser}, nil
 }
+
+type LoginRequest struct {
+	PhoneNumber string `json:"phone_number"`
+	Password    string `json:"password"`
+}
+
+type LoginResponse struct {
+	user entity.User
+}
+
+func (s Service) Login(req LoginRequest) (LoginResponse, error) {
+	panic("")
+}
+
+
+func GetHash(data string ) string {
+	hashedPassword := []byte(data)
+	hashedPasswordString := string(hashedPassword)
+	return hashedPasswordString
