@@ -17,8 +17,9 @@ func main() {
 
 	mux.HandleFunc("/users/register", userRegisterHandler)
 	mux.HandleFunc("/health-check", healthCheckHandler)
-	log.Print("serve on 8080")
-	server := http.Server{Addr: ":8080", Handler: mux}
+	port := "5961"
+	log.Print("serve on " + port)
+	server := http.Server{Addr: ":" + port, Handler: mux}
 	log.Fatal(server.ListenAndServe())
 
 }
