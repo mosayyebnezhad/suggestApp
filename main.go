@@ -6,17 +6,29 @@ import (
 	"io"
 	"log"
 	"net/http"
-	entity "suggestApp/enity"
 	"suggestApp/repository/mysql"
 	userservice "suggestApp/service/userserice"
 )
 
 func main() {
 
-	mux := http.NewServeMux()
+	// Mysqlrep := mysql.New()
+	// userscsv := userservice.NewService(Mysqlrep)
 
-	mux.HandleFunc("/users/register", userRegisterHandler)
+	// q, BErr := userscsv.Login(userservice.LoginRequest{PhoneNumber: "09384850116", Password: "1312312222mm"})
+
+	// if BErr != nil {
+	// 	fmt.Println("Login failed", BErr.Error())
+	// } else {
+
+	// 	fmt.Printf("Login successful %v", q)
+	// }
+
+	mux := http.NewServeMux()
 	mux.HandleFunc("/health-check", healthCheckHandler)
+	mux.HandleFunc("/users/register", userRegisterHandler)
+	mux.HandleFunc("/users/login", userLoginHandler)
+
 	port := "5961"
 	log.Print("serve on " + port)
 	server := http.Server{Addr: ":" + port, Handler: mux}
@@ -58,25 +70,40 @@ func userRegisterHandler(writer http.ResponseWriter, req *http.Request) {
 	return
 }
 
-func healthCheckHandler(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(w, `{"message":"everything is ok"}`)
+func userLoginHandler(writer http.ResponseWriter, req *http.Request) {
+	if req.Method != http.MethodPost {
+		http.Error(writer, `{"message":"Method not allowed"}`, http.StatusMethodNotAllowed)
+		return
+	}
+
+	data, err := io.ReadAll(req.Body)
+	if err != nil {
+		writer.Write([]byte(fmt.Sprintf(`{"error on read":"%s"}`, err.Error())))
+		return
+	}
+
+	var UReq userservice.LoginRequest
+
+	err = json.Unmarshal(data, &UReq)
+	if err != nil {
+		writer.Write([]byte(fmt.Sprintf(`{"error on json unmarshal":"%s"}`, err.Error())))
+		return
+	}
+
+	mySqlRepo := mysql.New()
+
+	userSvc := userservice.NewService(mySqlRepo)
+
+	_, err = userSvc.Login(UReq)
+	if err != nil {
+		writer.Write([]byte(fmt.Sprintf(`{"error on login":"%s"}`, err.Error())))
+		return
+	}
+
+	writer.Write([]byte(fmt.Sprintf(`{"message":"User login successfully"}`)))
+	return
 }
 
-func testUserMySqlRepo() {
-	mysqlRepo := mysql.New()
-	createUser, err := mysqlRepo.Register(entity.User{ID: 0, PhoneNumber: "0962", Name: "alierza"})
-	if err != nil {
-
-		fmt.Printf("error %v", err.Error())
-	}
-
-	fmt.Printf("User created with ID: %v\n", createUser)
-
-	isUnique, UErr := mysqlRepo.IsUniquePhoneNumber(createUser.PhoneNumber + "22")
-
-	if UErr != nil {
-		fmt.Printf("error %v", UErr.Error())
-	}
-
-	fmt.Println("is unique", isUnique)
+func healthCheckHandler(w http.ResponseWriter, r *http.Request) {
+	fmt.Fprintf(w, `{"message":"everything is ok"}`)
 }

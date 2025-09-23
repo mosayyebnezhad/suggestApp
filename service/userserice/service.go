@@ -11,6 +11,7 @@ import (
 type repository interface {
 	IsUniquePhoneNumber(phoneNumber string) (bool, error)
 	Register(u entity.User) (entity.User, error)
+	GetUserByPhoneNumber(phoneNumber string) (entity.User, bool, error)
 }
 
 type Service struct {
@@ -80,11 +81,33 @@ type LoginResponse struct {
 }
 
 func (s Service) Login(req LoginRequest) (LoginResponse, error) {
-	panic("")
+	user, exist, err := s.repo.GetUserByPhoneNumber(req.PhoneNumber)
+
+	fmt.Println(user, exist, err)
+
+	fmt.Println(req.Password, GetHash(req.Password))
+	if err != nil {
+		return LoginResponse{}, fmt.Errorf("error getting user by phone number: %w", err)
+	}
+
+	if !exist {
+		return LoginResponse{}, fmt.Errorf("username or password is incorrect")
+	}
+
+	comp := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(req.Password))
+	if comp != nil {
+		return LoginResponse{}, fmt.Errorf("password is incorrect", comp)
+	}
+
+	return LoginResponse{user}, nil
 }
 
-
-func GetHash(data string ) string {
-	hashedPassword := []byte(data)
-	hashedPasswordString := string(hashedPassword)
+func GetHash(data string) string {
+	Password := []byte(data)
+	hashedPass, err := bcrypt.GenerateFromPassword(Password, bcrypt.MinCost)
+	if err != nil {
+		return ""
+	}
+	hashedPasswordString := string(hashedPass)
 	return hashedPasswordString
+}
