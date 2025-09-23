@@ -24,10 +24,15 @@ type RegisterResponse struct {
 	user entity.User
 }
 
+func NewService(repo repository) Service {
+	return Service{repo: repo}
+}
+
 func (s Service) Register(req RegisterRequest) (RegisterResponse, error) {
 	// TODO verify phone number
+	fmt.Println(req)
 	if !phoneNumber.IsValid(req.PhoneNumber) {
-		return RegisterResponse{}, fmt.Errorf("")
+		return RegisterResponse{}, fmt.Errorf("phone number is invalid")
 	}
 
 	if isUnique, UErr := s.repo.IsUniquePhoneNumber(req.PhoneNumber); UErr != nil || !isUnique {
