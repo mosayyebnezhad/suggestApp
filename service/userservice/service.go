@@ -12,6 +12,7 @@ type repository interface {
 	IsUniquePhoneNumber(phoneNumber string) (bool, error)
 	Register(u entity.User) (entity.User, error)
 	GetUserByPhoneNumber(phoneNumber string) (entity.User, bool, error)
+	GetUserByID(id uint) (entity.User, error)
 }
 
 type Service struct {
@@ -110,4 +111,22 @@ func GetHash(data string) string {
 	}
 	hashedPasswordString := string(hashedPass)
 	return hashedPasswordString
+}
+
+type ProfileRequest struct {
+	UserID uint `json:"user_id"`
+}
+
+type ProfileResponse struct {
+	Name string `json:"name"`
+}
+
+func (s Service) Profile(req ProfileRequest) (ProfileResponse, error) {
+
+	user, err := s.repo.GetUserByID(req.UserID)
+	if err != nil {
+		return ProfileResponse{}, fmt.Errorf("Unexpected error getting user by id: %w", err)
+	}
+
+	return ProfileResponse{Name: user.Name}, nil
 }

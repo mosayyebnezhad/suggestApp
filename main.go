@@ -7,27 +7,16 @@ import (
 	"log"
 	"net/http"
 	"suggestApp/repository/mysql"
-	userservice "suggestApp/service/userserice"
+	"suggestApp/service/userservice"
 )
 
 func main() {
-
-	// Mysqlrep := mysql.New()
-	// userscsv := userservice.NewService(Mysqlrep)
-
-	// q, BErr := userscsv.Login(userservice.LoginRequest{PhoneNumber: "09384850116", Password: "1312312222mm"})
-
-	// if BErr != nil {
-	// 	fmt.Println("Login failed", BErr.Error())
-	// } else {
-
-	// 	fmt.Printf("Login successful %v", q)
-	// }
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/health-check", healthCheckHandler)
 	mux.HandleFunc("/users/register", userRegisterHandler)
 	mux.HandleFunc("/users/login", userLoginHandler)
+	mux.HandleFunc("/users/profile", userProfileHandler)
 
 	port := "5961"
 	log.Print("serve on " + port)
@@ -102,6 +91,21 @@ func userLoginHandler(writer http.ResponseWriter, req *http.Request) {
 
 	writer.Write([]byte(fmt.Sprintf(`{"message":"User login successfully"}`)))
 	return
+}
+func userProfileHandler(writer http.ResponseWriter, req *http.Request) {
+	if req.Method != http.MethodGet {
+		http.Error(writer, `{"message":"Method not allowed"}`, http.StatusMethodNotAllowed)
+		return
+	}
+
+	Req := userservice.ProfileRequest{UserID: 10}
+
+	mySqlRepo := mysql.New()
+
+	userSvc := userservice.NewService(mySqlRepo)
+
+	userSvc.Profile(Req)
+
 }
 
 func healthCheckHandler(w http.ResponseWriter, r *http.Request) {
