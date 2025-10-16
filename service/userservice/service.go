@@ -4,7 +4,9 @@ import (
 	"fmt"
 	entity "suggestApp/enity"
 	"suggestApp/pkg/phoneNumber"
+	"time"
 
+	"github.com/golang-jwt/jwt/v5"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -16,7 +18,8 @@ type repository interface {
 }
 
 type Service struct {
-	repo repository
+	repo    repository
+	signKey string
 }
 
 type RegisterRequest struct {
@@ -29,8 +32,8 @@ type RegisterResponse struct {
 	user entity.User
 }
 
-func NewService(repo repository) Service {
-	return Service{repo: repo}
+func NewService(repo repository, signKey string) Service {
+	return Service{repo: repo, signKey: signKey}
 }
 
 func (s Service) Register(req RegisterRequest) (RegisterResponse, error) {
@@ -78,7 +81,7 @@ type LoginRequest struct {
 }
 
 type LoginResponse struct {
-	user entity.User
+	AccessToken string `json:"access_token"`
 }
 
 func (s Service) Login(req LoginRequest) (LoginResponse, error) {
@@ -100,7 +103,12 @@ func (s Service) Login(req LoginRequest) (LoginResponse, error) {
 		return LoginResponse{}, fmt.Errorf("password is incorrect", comp)
 	}
 
-	return LoginResponse{user}, nil
+	token, err := createToken(user.ID, s.signKey)
+	if err != nil {
+		return LoginResponse{}, fmt.Errorf("error creating token: %w", err)
+	}
+
+	return LoginResponse{AccessToken: token}, nil
 }
 
 func GetHash(data string) string {
@@ -121,6 +129,8 @@ type ProfileResponse struct {
 	Name string `json:"name"`
 }
 
+//INFO all request input for service / interactor should be sanitized
+
 func (s Service) Profile(req ProfileRequest) (ProfileResponse, error) {
 
 	user, err := s.repo.GetUserByID(req.UserID)
@@ -129,4 +139,22 @@ func (s Service) Profile(req ProfileRequest) (ProfileResponse, error) {
 	}
 
 	return ProfileResponse{Name: user.Name}, nil
+}
+
+type Claims struct {
+	jwt.RegisteredClaims
+	UserID uint
+}
+
+func createToken(userID uint, signKey string) (string, error) {
+	t := jwt.New(jwt.SigningMethodHS256)
+
+	t.Claims = &Claims{
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Hour * 24 * 7)),
+		},
+		UserID: userID,
+	}
+
+	return t.SignedString([]byte(signKey))
 }

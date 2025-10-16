@@ -14,7 +14,7 @@ type MySqlDB struct {
 
 func New() *MySqlDB {
 
-	MYSQL_DATABASE, MYSQL_USER, MYSQL_PASSWORD := "suggest", "user1", "pass1"
+	MYSQL_DATABASE, MYSQL_USER, MYSQL_PASSWORD := "gameapp_db", "gameapp", "gameappt0lk2o20"
 
 	db, err := sql.Open("mysql", fmt.Sprintf("%s:%s@(localhost:3308)/%s", MYSQL_USER, MYSQL_PASSWORD, MYSQL_DATABASE))
 	if err != nil {

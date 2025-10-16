@@ -10,6 +10,10 @@ import (
 	"suggestApp/service/userservice"
 )
 
+const (
+	JWT_SECRET = "your_jwt_secret"
+)
+
 func main() {
 
 	mux := http.NewServeMux()
@@ -47,7 +51,7 @@ func userRegisterHandler(writer http.ResponseWriter, req *http.Request) {
 
 	mySqlRepo := mysql.New()
 
-	userSvc := userservice.NewService(mySqlRepo)
+	userSvc := userservice.NewService(mySqlRepo, JWT_SECRET)
 
 	_, err = userSvc.Register(UReq)
 	if err != nil {
@@ -81,31 +85,35 @@ func userLoginHandler(writer http.ResponseWriter, req *http.Request) {
 
 	mySqlRepo := mysql.New()
 
-	userSvc := userservice.NewService(mySqlRepo)
+	userSvc := userservice.NewService(mySqlRepo, JWT_SECRET)
 
-	_, err = userSvc.Login(UReq)
+	Resp, err := userSvc.Login(UReq)
 	if err != nil {
 		writer.Write([]byte(fmt.Sprintf(`{"error on login":"%s"}`, err.Error())))
 		return
 	}
 
-	writer.Write([]byte(fmt.Sprintf(`{"message":"User login successfully"}`)))
+	writer.Write([]byte(fmt.Sprintf(`{"message":"User logged in successfully", "token":"%s"}`, Resp.AccessToken)))
+
 	return
 }
+
 func userProfileHandler(writer http.ResponseWriter, req *http.Request) {
 	if req.Method != http.MethodGet {
 		http.Error(writer, `{"message":"Method not allowed"}`, http.StatusMethodNotAllowed)
 		return
 	}
 
+	Authorization := req.Header.Get("Authorization")
+
+	fmt.Println(Authorization)
 	Req := userservice.ProfileRequest{UserID: 10}
 
 	mySqlRepo := mysql.New()
 
-	userSvc := userservice.NewService(mySqlRepo)
+	userSvc := userservice.NewService(mySqlRepo, JWT_SECRET)
 
 	userSvc.Profile(Req)
-
 }
 
 func healthCheckHandler(w http.ResponseWriter, r *http.Request) {
