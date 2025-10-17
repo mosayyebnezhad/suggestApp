@@ -4,9 +4,7 @@ import (
 	"fmt"
 	entity "suggestApp/enity"
 	"suggestApp/pkg/phoneNumber"
-	"time"
 
-	"github.com/golang-jwt/jwt/v5"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -17,9 +15,14 @@ type repository interface {
 	GetUserByID(id uint) (entity.User, error)
 }
 
+type AuthGenerator interface {
+	CreateRefreshToken(user entity.User) (string, error)
+	CreateAccessToken(user entity.User) (string, error)
+}
+
 type Service struct {
-	repo    repository
-	signKey string
+	auth AuthGenerator
+	repo repository
 }
 
 type RegisterRequest struct {
@@ -32,8 +35,8 @@ type RegisterResponse struct {
 	user entity.User
 }
 
-func NewService(repo repository, signKey string) Service {
-	return Service{repo: repo, signKey: signKey}
+func NewService(repo repository, authGenerator AuthGenerator) Service {
+	return Service{repo: repo, auth: authGenerator}
 }
 
 func (s Service) Register(req RegisterRequest) (RegisterResponse, error) {
@@ -81,7 +84,8 @@ type LoginRequest struct {
 }
 
 type LoginResponse struct {
-	AccessToken string `json:"access_token"`
+	AccessToken  string `json:"access_token"`
+	RefreshToken string `json:"refresh_token"`
 }
 
 func (s Service) Login(req LoginRequest) (LoginResponse, error) {
@@ -103,12 +107,22 @@ func (s Service) Login(req LoginRequest) (LoginResponse, error) {
 		return LoginResponse{}, fmt.Errorf("password is incorrect", comp)
 	}
 
-	token, err := createToken(user.ID, s.signKey)
-	if err != nil {
-		return LoginResponse{}, fmt.Errorf("error creating token: %w", err)
+	// token, err := createToken(user.ID, s.signKey)
+	Atoken, Aerr := s.auth.CreateAccessToken(user)
+
+	if Aerr != nil {
+		return LoginResponse{}, fmt.Errorf("error creating Atoken: %w", Aerr)
 	}
 
-	return LoginResponse{AccessToken: token}, nil
+	Rtoken, Rerr := s.auth.CreateRefreshToken(user)
+
+	if err != nil {
+		return LoginResponse{}, fmt.Errorf("error creating Rtoken: %w", Rerr)
+	}
+
+	fmt.Println("hello ", LoginResponse{AccessToken: Atoken, RefreshToken: Rtoken})
+
+	return LoginResponse{AccessToken: Atoken, RefreshToken: Rtoken}, nil
 }
 
 func GetHash(data string) string {
@@ -139,22 +153,4 @@ func (s Service) Profile(req ProfileRequest) (ProfileResponse, error) {
 	}
 
 	return ProfileResponse{Name: user.Name}, nil
-}
-
-type Claims struct {
-	jwt.RegisteredClaims
-	UserID uint
-}
-
-func createToken(userID uint, signKey string) (string, error) {
-	t := jwt.New(jwt.SigningMethodHS256)
-
-	t.Claims = &Claims{
-		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Hour * 24 * 7)),
-		},
-		UserID: userID,
-	}
-
-	return t.SignedString([]byte(signKey))
 }
