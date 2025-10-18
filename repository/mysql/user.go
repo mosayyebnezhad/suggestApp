@@ -6,7 +6,7 @@ import (
 	entity "suggestApp/enity"
 )
 
-func (d *MySqlDB) IsUniquePhoneNumber(phoneNumber string) (bool, error) {
+func (d *MySqlDB) IsPhoneNumberUnique(phoneNumber string) (bool, error) {
 
 	row := d.db.QueryRow("select * from users where phone_number= ?", phoneNumber)
 
