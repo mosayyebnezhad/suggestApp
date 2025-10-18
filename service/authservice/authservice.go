@@ -9,32 +9,32 @@ import (
 	"github.com/golang-jwt/jwt/v4"
 )
 
-type Service struct {
-	signKey               string
-	accessExpiretionTime  time.Duration
-	refreshExpiretionTime time.Duration
-	accessSubject         string
-	refreshSubject        string
+type Config struct {
+	SignKey               string
+	AccessExpiretionTime  time.Duration
+	RefreshExpiretionTime time.Duration
+	AccessSubject         string
+	RefreshSubject        string
 }
 
-func New(signKey, accessSubject, refreshSubject string, accessExpiretionTime, refreshExpiretionTime time.Duration) Service {
+type Service struct {
+	config Config
+}
+
+func New(cfg Config) Service {
 
 	return Service{
-		signKey:               signKey,
-		accessExpiretionTime:  accessExpiretionTime,
-		refreshExpiretionTime: accessExpiretionTime,
-		accessSubject:         accessSubject,
-		refreshSubject:        refreshSubject,
+		config: cfg,
 	}
 
 }
 
 func (s Service) CreateAccessToken(user entity.User) (string, error) {
-	return s.createToken(user.ID, s.accessSubject, s.accessExpiretionTime)
+	return s.createToken(user.ID, s.config.AccessSubject, s.config.AccessExpiretionTime)
 }
 
 func (s Service) CreateRefreshToken(user entity.User) (string, error) {
-	return s.createToken(user.ID, s.refreshSubject, s.refreshExpiretionTime)
+	return s.createToken(user.ID, s.config.RefreshSubject, s.config.RefreshExpiretionTime)
 }
 
 func (s Service) ParseToken(BearerToken string) (*Claims, error) {
@@ -42,7 +42,7 @@ func (s Service) ParseToken(BearerToken string) (*Claims, error) {
 	tokenStr := strings.Replace(BearerToken, "bearer ", "", 1)
 
 	token, err := jwt.ParseWithClaims(tokenStr, &Claims{}, func(token *jwt.Token) (interface{}, error) {
-		return []byte(s.signKey), nil
+		return []byte(s.config.SignKey), nil
 	})
 
 	if token == nil {
@@ -72,5 +72,5 @@ func (s Service) createToken(userID uint, subject string, expiteAt time.Duration
 		},
 		UserID: userID,
 	}
-	return t.SignedString([]byte(s.signKey))
+	return t.SignedString([]byte(s.config.SignKey))
 }

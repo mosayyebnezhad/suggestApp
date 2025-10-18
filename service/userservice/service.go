@@ -8,21 +8,21 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-type repository interface {
-	IsUniquePhoneNumber(phoneNumber string) (bool, error)
+type Repository interface {
+	IsPhoneNumberUnique(phoneNumber string) (bool, error)
 	Register(u entity.User) (entity.User, error)
 	GetUserByPhoneNumber(phoneNumber string) (entity.User, bool, error)
-	GetUserByID(id uint) (entity.User, error)
+	GetUserByID(userID uint) (entity.User, error)
 }
 
 type AuthGenerator interface {
-	CreateRefreshToken(user entity.User) (string, error)
 	CreateAccessToken(user entity.User) (string, error)
+	CreateRefreshToken(user entity.User) (string, error)
 }
 
 type Service struct {
 	auth AuthGenerator
-	repo repository
+	repo Repository
 }
 
 type RegisterRequest struct {
@@ -31,11 +31,17 @@ type RegisterRequest struct {
 	Password    string `json:"password"`
 }
 
-type RegisterResponse struct {
-	user entity.User
+type RegisterResponseUser struct {
+	ID          uint   `json:"id"`
+	PhoneNumber string `json:"phone_number"`
+	Name        string `json:"name"`
 }
 
-func NewService(repo repository, authGenerator AuthGenerator) Service {
+type RegisterResponse struct {
+	User RegisterResponseUser `json:"user"`
+}
+
+func NewService(repo Repository, authGenerator AuthGenerator) Service {
 	return Service{repo: repo, auth: authGenerator}
 }
 
@@ -46,7 +52,7 @@ func (s Service) Register(req RegisterRequest) (RegisterResponse, error) {
 		return RegisterResponse{}, fmt.Errorf("phone number is invalid")
 	}
 
-	if isUnique, UErr := s.repo.IsUniquePhoneNumber(req.PhoneNumber); UErr != nil || !isUnique {
+	if isUnique, UErr := s.repo.IsPhoneNumberUnique(req.PhoneNumber); UErr != nil || !isUnique {
 		if UErr != nil {
 			return RegisterResponse{}, fmt.Errorf("error checking phone number uniqueness: %w", UErr)
 		}
@@ -75,7 +81,11 @@ func (s Service) Register(req RegisterRequest) (RegisterResponse, error) {
 		return RegisterResponse{}, fmt.Errorf("error registering user: %w", Err)
 	}
 
-	return RegisterResponse{createdUser}, nil
+	return RegisterResponse{RegisterResponseUser{
+		ID:          createdUser.ID,
+		PhoneNumber: createdUser.Name,
+		Name:        createdUser.PhoneNumber,
+	}}, nil
 }
 
 type LoginRequest struct {

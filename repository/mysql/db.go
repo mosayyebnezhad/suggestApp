@@ -8,15 +8,26 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 )
 
-type MySqlDB struct {
-	db *sql.DB
+type Config struct {
+	Username string
+	Password string
+	Port     int
+	Host     string
+	DbName   string
 }
 
-func New() *MySqlDB {
+type MySqlDB struct {
+	config Config
+	db     *sql.DB
+}
 
-	MYSQL_DATABASE, MYSQL_USER, MYSQL_PASSWORD := "gameapp_db", "gameapp", "gameappt0lk2o20"
+func New(config Config) *MySqlDB {
 
-	db, err := sql.Open("mysql", fmt.Sprintf("%s:%s@(localhost:3308)/%s", MYSQL_USER, MYSQL_PASSWORD, MYSQL_DATABASE))
+	MYSQL_DATABASE, MYSQL_USER, MYSQL_PASSWORD, HOST, PORT := config.DbName, config.Username, config.Password, config.Host, config.Port
+	// MYSQL_DATABASE, MYSQL_USER, MYSQL_PASSWORD, HOST, PORT := "gameapp_db", "gameapp", "gameappt0lk2o20", "localhost", 3306
+	// MYSQL_DATABASE, MYSQL_USER, MYSQL_PASSWORD := "gameapp_db", "gameapp", "gameappt0lk2o20"
+
+	db, err := sql.Open("mysql", fmt.Sprintf("%s:%s@(%s:%d)/%s", MYSQL_USER, MYSQL_PASSWORD, HOST, PORT, MYSQL_DATABASE))
 	if err != nil {
 		panic(fmt.Errorf("error when run app %v", err))
 	}
@@ -26,6 +37,7 @@ func New() *MySqlDB {
 	db.SetMaxIdleConns(10)
 
 	return &MySqlDB{
-		db: db,
+		db:     db,
+		config: config,
 	}
 }
