@@ -1,6 +1,6 @@
 {
-  "videoNumber": 76,
-  "time": "42:58",
+  "videoNumber": 77,
+  "time": "end",
   "repository": "https://github.com/gocasts-bootcamp/gameapp/tree/186d5dcc8a492ebf19a7a4c8cb6a87c80716d6dd",
-  "what i do": "talk about migrations on database"
+  "what i do": "talk about rich errors end error handlings"
 }
